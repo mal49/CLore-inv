@@ -872,16 +872,24 @@
       }
     }
 
-    async function copyLink(name, btn) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    function copyLink(name, btn) {
       const longUrl = getGuestLink(name);
 
-      // If short URL is already cached, copy it instantly (mobile-safe)
+      if (isMobile) {
+        // Mobile: always copy the full long URL (100% reliable)
+        doCopy(longUrl, btn);
+        return;
+      }
+
+      // Desktop: use short URL if already cached
       if (shortUrlCache[name]) {
         doCopy(shortUrlCache[name], btn);
         return;
       }
 
-      // MOBILE-SAFE: copy the long URL immediately, synchronously, inside the tap handler
+      // Desktop fallback: copy long URL now, short URL will be ready for next click
       doCopy(longUrl, btn);
     }
 
