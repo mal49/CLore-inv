@@ -839,21 +839,31 @@
     }
 
     function fallbackCopy(text, cb) {
-      const input = document.createElement('input');
-      input.value = text;
-      input.readOnly = true;
-      input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
-      document.body.appendChild(input);
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.contentEditable = true;
+      ta.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:none;outline:none;box-shadow:none;background:transparent;opacity:0;z-index:-1;overflow:hidden;';
+      document.body.appendChild(ta);
 
-      input.focus();
-      input.setSelectionRange(0, text.length);
+      ta.focus();
+      ta.select();
+
+      const range = document.createRange();
+      range.selectNodeContents(ta);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      ta.setSelectionRange(0, text.length);
 
       let ok = false;
       try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ }
 
-      document.body.removeChild(input);
+      document.body.removeChild(ta);
+      sel.removeAllRanges();
+
       if (ok) cb();
-      else showToast('Copy failed — long-press link to select');
+      else showToast('Copy failed — long-press to select link');
     }
 
     function doCopy(text, btn) {
@@ -898,7 +908,6 @@
       guests.forEach((name, i) => {
         if (shortUrlCache[name]) return;
         const longUrl = getGuestLink(name);
-        // stagger requests to avoid rate-limiting
         setTimeout(() => {
           shortenUrl(longUrl)
             .then(shortUrl => { shortUrlCache[name] = shortUrl; })
@@ -907,104 +916,7 @@
       });
     }
 
-    function shortenUrl(longUrl) {
-      return new Promise((resolve, reject) => {
-        const cb = 'shorten_' + Date.now();
-        const script = document.createElement('script');
-        const cleanup = () => {
-          delete window[cb];
-          if (script.parentNode) script.parentNode.removeChild(script);
-        };
 
-        window[cb] = (data) => {
-          cleanup();
-          if (data.shorturl) resolve(data.shorturl);
-          else reject(new Error(data.errormessage || 'Shortening failed'));
-        };
-
-        script.onerror = () => { cleanup(); reject(new Error('Shortener load error')); };
-        setTimeout(() => { cleanup(); reject(new Error('Shortener timeout')); }, 5000);
-
-        script.src = 'https://is.gd/create.php?format=json&url=' + encodeURIComponent(longUrl) + '&callback=' + cb;
-        document.head.appendChild(script);
-      });
-    }
-
-    async function copyLink(name, btn) {
-      const longUrl = getGuestLink(name);
-      let link = longUrl;
-      try { link = await shortenUrl(longUrl); }
-      catch (e) { console.log('Shortening failed, using full URL'); }
-
-      const orig = btn.textContent;
-      const done = () => {
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        showToast('Link copied');
-        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
-      };
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));
-      } else {
-        fallbackCopy(link, done);
-      }
-    }
-
-    function fallbackCopy(text, cb) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.readOnly = true;
-      ta.contentEditable = true;
-      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;outline:none;box-shadow:none;background:transparent;color:transparent;caret-color:transparent;z-index:-1;overflow:hidden;resize:none;';
-      document.body.appendChild(ta);
-
-      if (navigator.userAgent.match(/ipad|iphone/i)) {
-        const range = document.createRange();
-        range.selectNodeContents(ta);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        ta.setSelectionRange(0, text.length);
-      } else {
-        ta.select();
-      }
-
-      try {
-        const ok = document.execCommand('copy');
-        document.body.removeChild(ta);
-        if (ok) cb();
-        else showToast('Copy failed — select the link manually');
-      } catch {
-        document.body.removeChild(ta);
-        showToast('Copy failed — select the link manually');
-      }
-    }
-
-    async function copyLink(name, btn) {
-      const longUrl = getGuestLink(name);
-      let link = longUrl;
-      try { link = await shortenUrl(longUrl); }
-      catch (e) { console.log('Shortening failed, using full URL'); }
-
-      const orig = btn.textContent;
-      const done = () => {
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        showToast('Link copied');
-        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
-      };
-
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(link);
-          done();
-          return;
-        } catch (e) {
-          console.log('Clipboard API failed, using fallback', e);
-        }
-      }
-      fallbackCopy(link, done);
-    }
 
     // ── render ──
     function renderGuests(guests) {
