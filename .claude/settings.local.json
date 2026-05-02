@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(dir /s /b)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ikhmalhanif\\\\OneDrive\\\\Documents\\\\random projek\\\\invitation-card\" -Force | Where-Object { $_.Name -notlike \".git\" } | Format-Table Name, PSIsContainer)"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ikhmalhanif\\\\OneDrive\\\\Documents\\\\random projek\\\\invitation-card\" -Force | Where-Object { $_.Name -notlike \".git\" } | Format-Table Name, PSIsContainer)",
+      "WebFetch(domain:codepen.io)"
     ]
   }
 }
