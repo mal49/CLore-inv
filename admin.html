@@ -831,7 +831,7 @@
         };
 
         script.onerror = () => { if (!resolved) { cleanup(); reject(new Error('Shortener script error')); } };
-        const t = setTimeout(() => { if (!resolved) { cleanup(); reject(new Error('Shortener timeout')); } }, 8000);
+        setTimeout(() => { if (!resolved) { cleanup(); reject(new Error('Shortener timeout')); } }, 8000);
 
         script.src = 'https://is.gd/create.php?format=json&url=' + encodeURIComponent(longUrl) + '&callback=' + cb;
         document.head.appendChild(script);
@@ -883,14 +883,20 @@
 
       // MOBILE-SAFE: copy the long URL immediately, synchronously, inside the tap handler
       doCopy(longUrl, btn);
+    }
 
-      // Then try to shorten in the background for next time
-      try {
-        const shortUrl = await shortenUrl(longUrl);
-        shortUrlCache[name] = shortUrl;
-      } catch (e) {
-        console.log('Shortening failed', e);
-      }
+    // Pre-shorten all guest links in the background so the next tap copies the short URL
+    function preShortenLinks(guests) {
+      guests.forEach((name, i) => {
+        if (shortUrlCache[name]) return;
+        const longUrl = getGuestLink(name);
+        // stagger requests to avoid rate-limiting
+        setTimeout(() => {
+          shortenUrl(longUrl)
+            .then(shortUrl => { shortUrlCache[name] = shortUrl; })
+            .catch(() => { /* leave long URL for this guest */ });
+        }, i * 400);
+      });
     }
 
     function shortenUrl(longUrl) {
@@ -997,6 +1003,9 @@
       document.getElementById('guestCount').textContent = guests.length;
       const container = document.getElementById('guestList');
       container.innerHTML = '';
+
+      // start pre-shortening in the background (staggered)
+      preShortenLinks(guests);
 
       if (guests.length === 0) {
         const empty = document.createElement('div');
