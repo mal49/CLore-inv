@@ -856,12 +856,57 @@
     function fallbackCopy(text, cb) {
       const ta = document.createElement('textarea');
       ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+      ta.readOnly = true;
+      ta.contentEditable = true;
+      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;outline:none;box-shadow:none;background:transparent;color:transparent;caret-color:transparent;z-index:-1;overflow:hidden;resize:none;';
       document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      try { document.execCommand('copy'); cb(); }
-      catch { showToast('Copy failed — select the link manually'); }
-      document.body.removeChild(ta);
+
+      if (navigator.userAgent.match(/ipad|iphone/i)) {
+        const range = document.createRange();
+        range.selectNodeContents(ta);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        ta.setSelectionRange(0, text.length);
+      } else {
+        ta.select();
+      }
+
+      try {
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) cb();
+        else showToast('Copy failed — select the link manually');
+      } catch {
+        document.body.removeChild(ta);
+        showToast('Copy failed — select the link manually');
+      }
+    }
+
+    async function copyLink(name, btn) {
+      const longUrl = getGuestLink(name);
+      let link = longUrl;
+      try { link = await shortenUrl(longUrl); }
+      catch (e) { console.log('Shortening failed, using full URL'); }
+
+      const orig = btn.textContent;
+      const done = () => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        showToast('Link copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(link);
+          done();
+          return;
+        } catch (e) {
+          console.log('Clipboard API failed, using fallback', e);
+        }
+      }
+      fallbackCopy(link, done);
     }
 
     // ── render ──
