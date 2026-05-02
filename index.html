@@ -11,6 +11,37 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Great+Vibes&display=swap"
     rel="stylesheet">
+  <style>
+    .lang-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+    .lang-toggle button {
+      background: transparent;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      color: #6a635c;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-toggle button:hover {
+      border-color: rgba(0, 0, 0, 0.35);
+      color: #1a1a1a;
+    }
+    .lang-toggle button.active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #e9e8e4;
+    }
+  </style>
 </head>
 
 <body>
@@ -27,7 +58,7 @@
       <div class="g-texts">
         <div class="g-company">CLore Sdn. Bhd.</div>
         <div class="g-divider"></div>
-        <div class="g-tagline">you are cordially invited</div>
+        <div class="g-tagline" id="g-tagline">you are cordially invited</div>
       </div>
     </div>
   </div>
@@ -47,51 +78,55 @@
         </div>
       </div>
     </div>
-    <p class="open-hint" id="hint">TAP TO OPEN</p>
+      <p class="open-hint" id="hint">TAP TO OPEN</p>
 
     <div class="card-reveal" id="cardReveal">
       <div class="card">
-        <div class="card-inner">
+        <div class="card-inner" style="position:relative;">
+          <div class="lang-toggle">
+            <button id="btn-en" onclick="setLang('en')">EN</button>
+            <button id="btn-bm" onclick="setLang('bm')">BM</button>
+          </div>
           <div class="card-logo"><img src="public/clore-logo.png" alt="CLore"></div>
           <div class="guest-name" id="guest-name"></div>
           <div class="card-rule"></div>
-          <div class="event-label">TAYANGAN PERDANA</div>
+          <div class="event-label" id="event-label">TAYANGAN PERDANA</div>
           <div class="movie-title">TARUNG: UNFORGIVEN</div>
           <div class="event-details">
-            <div class="event-detail-row">Jumaat, 8 Mei 2026</div>
-            <div class="event-detail-row">8:00 malam</div>
-            <div class="event-detail-row">TGV Central I-City, Shah Alam</div>
+            <div class="event-detail-row" id="event-date">Jumaat, 8 Mei 2026</div>
+            <div class="event-detail-row" id="event-time">8:00 malam</div>
+            <div class="event-detail-row" id="event-venue">TGV Central I-City, Shah Alam</div>
           </div>
-          <div class="rsvp-deadline">Sila sahkan kehadiran sebelum <span>5 Mei 2026</span></div>
+          <div class="rsvp-deadline" id="rsvp-deadline">Sila sahkan kehadiran sebelum <span id="rsvp-deadline-date">5 Mei 2026</span></div>
           <div id="main-cta">
             <div class="cta-row">
-              <button class="btn-accept" onclick="showForm()">Accept Invitation</button>
-              <button class="btn-decline" onclick="showDecline()">Unable to Attend</button>
+              <button class="btn-accept" id="btn-accept" onclick="showForm()">Accept Invitation</button>
+              <button class="btn-decline" id="btn-decline" onclick="showDecline()">Unable to Attend</button>
             </div>
           </div>
           <div class="rsvp-form" id="rsvp-form">
-            <div class="rsvp-heading">Confirm your attendance</div>
+            <div class="rsvp-heading" id="rsvp-heading">Confirm your attendance</div>
             <div>
-              <label class="form-label">Full name</label>
+              <label class="form-label" id="label-name">Full name</label>
               <input class="form-input" type="text" id="rsvp-name-input">
             </div>
             <div>
-              <label class="form-label">Mobile number</label>
+              <label class="form-label" id="label-phone">Mobile number</label>
               <input class="form-input" type="tel" id="rsvp-phone-input" placeholder="+60 12-345 6789">
             </div>
             <div>
-              <label class="form-label">Number of seats</label>
+              <label class="form-label" id="label-seats">Number of seats</label>
               <select class="form-select" id="rsvp-seats-input">
-                <option>1 — Myself only</option>
-                <option>2 — Myself + 1 guest</option>
-                <option>3 — Myself + 2 guests</option>
+                <option value="1">1 — Myself only</option>
+                <option value="2">2 — Myself + 1 guest</option>
+                <option value="3">3 — Myself + 2 guests</option>
               </select>
             </div>
-            <button class="btn-submit" onclick="showSuccess()">Confirm Attendance</button>
+            <button class="btn-submit" id="btn-submit" onclick="showSuccess()">Confirm Attendance</button>
           </div>
           <div class="success-box" id="success-box">
             <div class="check-circle">✓</div>
-            <div class="success-title">You're confirmed!</div>
+            <div class="success-title" id="success-title">You're confirmed!</div>
             <div class="success-sub" id="success-sub"></div>
           </div>
         </div>
@@ -105,10 +140,100 @@
   <script>
     const GUEST_NAME = new URLSearchParams(window.location.search).get('guest') || "Dato’ Ahmad Faris";
     const RSVP_URL = 'https://script.google.com/macros/s/AKfycbwcLA_nsrgvuQSphbCpaSE7DG6LaZrOveD5SYx8oHdH7uSko8iEqEbgNO7tzCqnyhVC/exec';
+    let currentLang = 'en';
+
+    const i18n = {
+      en: {
+        gTagline: 'you are cordially invited',
+        hint: 'TAP TO OPEN',
+        eventLabel: 'PREMIERE SCREENING',
+        eventDate: 'Friday, 8 May 2026',
+        eventTime: '8:00 pm',
+        eventVenue: 'TGV Central I-City, Shah Alam',
+        rsvpDeadlinePrefix: 'Please confirm your attendance before ',
+        rsvpDeadlineDate: '5 May 2026',
+        btnAccept: 'Accept Invitation',
+        btnDecline: 'Unable to Attend',
+        rsvpHeading: 'Confirm your attendance',
+        labelName: 'Full name',
+        labelPhone: 'Mobile number',
+        labelSeats: 'Number of seats',
+        seat1: '1 — Myself only',
+        seat2: '2 — Myself + 1 guest',
+        seat3: '3 — Myself + 2 guests',
+        btnSubmit: 'Confirm Attendance',
+        successTitle: "You're confirmed!",
+        successSub: name => 'Thank you, ' + name + '. We look forward to your presence at the premiere of Tarung: Unforgiven on 8 May 2026.',
+        declineMsg: '<div style="text-align:center;padding:1.5rem 0;font-size:14px;color:#a0998e;font-family:\'Cormorant Garamond\',Georgia,serif;line-height:1.7;font-style:italic;">We understand and will miss your presence.<br>Thank you for letting us know.</div>'
+      },
+      bm: {
+        gTagline: 'anda dijemput dengan hormat',
+        hint: 'KETUK UNTUK BUKA',
+        eventLabel: 'TAYANGAN PERDANA',
+        eventDate: 'Jumaat, 8 Mei 2026',
+        eventTime: '8:00 malam',
+        eventVenue: 'TGV Central I-City, Shah Alam',
+        rsvpDeadlinePrefix: 'Sila sahkan kehadiran sebelum ',
+        rsvpDeadlineDate: '5 Mei 2026',
+        btnAccept: 'Terima Jemputan',
+        btnDecline: 'Tidak Dapat Hadir',
+        rsvpHeading: 'Sahkan kehadiran anda',
+        labelName: 'Nama penuh',
+        labelPhone: 'Nombor telefon',
+        labelSeats: 'Bilangan tempat duduk',
+        seat1: '1 — Diri saya sahaja',
+        seat2: '2 — Diri saya + 1 tetamu',
+        seat3: '3 — Diri saya + 2 tetamu',
+        btnSubmit: 'Sahkan Kehadiran',
+        successTitle: 'Anda telah disahkan!',
+        successSub: name => 'Terima kasih, ' + name + '. Kami menantikan kehadiran anda di tayangan perdana Tarung: Unforgiven pada 8 Mei 2026.',
+        declineMsg: '<div style="text-align:center;padding:1.5rem 0;font-size:14px;color:#a0998e;font-family:\'Cormorant Garamond\',Georgia,serif;line-height:1.7;font-style:italic;">Kami faham dan akan merindui kehadiran anda.<br>Terima kasih kerana memaklumkan kami.</div>'
+      }
+    };
+
+    function setLang(lang) {
+      currentLang = lang;
+      const t = i18n[lang];
+
+      document.getElementById('g-tagline').textContent = t.gTagline;
+      document.getElementById('hint').textContent = t.hint;
+      document.getElementById('event-label').textContent = t.eventLabel;
+      document.getElementById('event-date').textContent = t.eventDate;
+      document.getElementById('event-time').textContent = t.eventTime;
+      document.getElementById('event-venue').textContent = t.eventVenue;
+      document.getElementById('rsvp-deadline').innerHTML = t.rsvpDeadlinePrefix + '<span id="rsvp-deadline-date">' + t.rsvpDeadlineDate + '</span>';
+      document.getElementById('btn-accept').textContent = t.btnAccept;
+      document.getElementById('btn-decline').textContent = t.btnDecline;
+      document.getElementById('rsvp-heading').textContent = t.rsvpHeading;
+      document.getElementById('label-name').textContent = t.labelName;
+      document.getElementById('label-phone').textContent = t.labelPhone;
+      document.getElementById('label-seats').textContent = t.labelSeats;
+
+      const opts = document.getElementById('rsvp-seats-input').options;
+      opts[0].textContent = t.seat1;
+      opts[1].textContent = t.seat2;
+      opts[2].textContent = t.seat3;
+
+      document.getElementById('btn-submit').textContent = t.btnSubmit;
+      document.getElementById('success-title').textContent = t.successTitle;
+
+      const successBox = document.getElementById('success-box');
+      if (successBox.classList.contains('visible')) {
+        document.getElementById('success-sub').textContent = t.successSub(GUEST_NAME);
+      }
+
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+      document.getElementById('btn-bm').classList.toggle('active', lang === 'bm');
+    }
+
+    const urlLang = new URLSearchParams(window.location.search).get('lang');
+    if (urlLang === 'bm') currentLang = 'bm';
+    else if (urlLang === 'en') currentLang = 'en';
+
     document.getElementById('guest-name').textContent = GUEST_NAME;
     document.getElementById('rsvp-name-input').value = GUEST_NAME;
-    document.getElementById('success-sub').textContent =
-      'Thank you, ' + GUEST_NAME + '. We look forward to your presence at the premiere of Tarung: Unforgiven on 8 May 2026.';
+    document.getElementById('success-sub').textContent = i18n[currentLang].successSub(GUEST_NAME);
+    setLang(currentLang);
 
     const scene = document.getElementById('scene');
     const particles = document.getElementById('particles');
@@ -216,14 +341,14 @@
     }
 
     function showDecline() {
-      document.getElementById('main-cta').innerHTML = '<div style="text-align:center;padding:1.5rem 0;font-size:14px;color:#a0998e;font-family:\'Cormorant Garamond\',Georgia,serif;line-height:1.7;font-style:italic;">We understand and will miss your presence.<br>Thank you for letting us know.</div>';
+      document.getElementById('main-cta').innerHTML = i18n[currentLang].declineMsg;
       submitRSVP('Declined');
     }
 
     function showSuccess() {
-      // show success immediately, submit in background so there's no UI delay
       document.getElementById('rsvp-form').classList.remove('visible');
       document.getElementById('success-box').classList.add('visible');
+      document.getElementById('success-sub').textContent = i18n[currentLang].successSub(GUEST_NAME);
       submitRSVP('Confirmed');
     }
   </script>
